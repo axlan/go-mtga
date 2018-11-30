@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"io"
+	"mtg_test/mtgadata"
 	"os"
 	"regexp"
 	"strconv"
@@ -181,9 +182,10 @@ func checkForClientID(game *GameState, blob *simplejson.Json) {
 	}
 }
 
-func JsonReaderTask(jsonChan chan BlockData) {
+func JsonReaderTask(jsonChan chan BlockData, allCards *mtgadata.MtgaData) {
 	lastBlob := ""
 	gameState := new(GameState)
+	gameState.allCards = allCards
 	lastDecklist := ""
 	// errorCount := 0
 	for {

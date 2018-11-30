@@ -1,5 +1,9 @@
 package parse
 
+import (
+	"mtg_test/mtgadata"
+)
+
 type GameState struct {
 	game                 string
 	match                string
@@ -10,4 +14,5 @@ type GameState struct {
 	lastBlob             string
 	errorCount           int
 	collection           string
+	allCards             *mtgadata.MtgaData
 }

@@ -2,21 +2,19 @@ package parse
 
 import (
 	"fmt"
+	"strconv"
+
+	"mtg_test/mtgadata"
 
 	simplejson "github.com/bitly/go-simplejson"
 )
 
-type Card struct {
-	ownerSeatID string
-	mtgaID      string
-}
-
 type Pool struct {
 	poolName string
-	cards    []Card
+	cards    []*mtgadata.Card
 }
 
-type CardMap map[string]Card
+type CardMap map[string]mtgadata.Card
 
 func (p Pool) TotalCount() int {
 	return len(p.cards)
@@ -25,7 +23,7 @@ func (p Pool) TotalCount() int {
 func (p Pool) CountCardsOwnedBy(seat string) int {
 	total := 0
 	for _, card := range p.cards {
-		if card.ownerSeatID == seat {
+		if card.OwnerSeatID == seat {
 			total++
 		}
 	}
@@ -35,7 +33,7 @@ func (p Pool) CountCardsOwnedBy(seat string) int {
 func (p Pool) Count(mtgaID string) int {
 	total := 0
 	for _, card := range p.cards {
-		if card.mtgaID == mtgaID {
+		if card.MtgaID == mtgaID {
 			total++
 		}
 	}
@@ -45,10 +43,10 @@ func (p Pool) Count(mtgaID string) int {
 func (p Pool) GroupCards() map[string]int {
 	grouped := make(map[string]int)
 	for _, card := range p.cards {
-		if group, ok := grouped[card.mtgaID]; ok {
-			grouped[card.mtgaID] = group + 1
+		if group, ok := grouped[card.MtgaID]; ok {
+			grouped[card.MtgaID] = group + 1
 		} else {
-			grouped[card.mtgaID] = 1
+			grouped[card.MtgaID] = 1
 		}
 	}
 	return grouped
@@ -60,7 +58,7 @@ type Deck struct {
 }
 
 func CreateDeck(name string, id string) *Deck {
-	cards := [0]Card{}
+	cards := [0]*mtgadata.Card{}
 	deck := Deck{Pool: Pool{name, cards[:]}, deckID: id}
 	return &deck
 }
@@ -172,7 +170,7 @@ class Deck(Pool):
         return deck
 */
 
-func ProcessDeck(deckJson *simplejson.Json, saveDeck bool) string {
+func ProcessDeck(deckJson *simplejson.Json, game *GameState, saveDeck bool) string {
 	deckID, err := deckJson.Get("id").String()
 	if err != nil {
 		fmt.Printf("Missing deckID")
@@ -233,11 +231,17 @@ func ProcessDeck(deckJson *simplejson.Json, saveDeck bool) string {
 			return ""
 		}
 		for j := 0; j < quantity; j++ {
-			deck.cards = append(deck.cards, Card{"", id})
+			mtgaID, err := strconv.Atoi(id)
+			if err != nil {
+				fmt.Printf("id not a number")
+				return ""
+			}
+			cardData := game.allCards.GetCard(mtgaID)
+			deck.cards = append(deck.cards, cardData)
 		}
 
 	}
-	fmt.Println(deck.cards)
+	fmt.Println(deck.cards, len(deck.cards))
 	return ""
 }
 
@@ -280,7 +284,7 @@ def process_deck(deck_dict, save_deck=True):
 
 func ParseEventDecksubmit(game *GameState, blob *simplejson.Json) {
 	courseDeck := blob.Get("CourseDeck")
-	deck := ProcessDeck(courseDeck, false)
+	deck := ProcessDeck(courseDeck, game, false)
 	fmt.Println(deck)
 	// mtga_app.mtga_watch_app.intend_to_join_game_with = deck
 }
